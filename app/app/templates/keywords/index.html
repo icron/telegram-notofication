@@ -1,0 +1,78 @@
+{% import "bootstrap/utils.html" as utils %}
+
+{% extends 'layout/main.html' %}
+
+{% block title %}Keywords{% endblock %}
+
+{% block content %}
+{{ utils.flashed_messages() }}
+<p>
+    <a class="btn btn-sm btn-outline-info" href="{{ url_for('keywords.create') }}">Create</a>
+</p>
+<div class="table-responsive">
+    <table class="table table-striped table-vcenter">
+        <thead>
+        <tr>
+            <th>Channels</th>
+            <th>Keywords</th>
+            <th class="text-center" >Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for model in keywords %}
+        <tr>
+            <td>{{ model.channels|safe }}</td>
+            <td>{{ model.keywords|safe }}</td>
+            <td class="text-center">
+                <div class="btn-group">
+                    <a href="{{ url_for('keywords.update', uuid=model.uuid)}}" class="btn btn-sm btn-secondary" data-toggle="tooltip" title="Edit">
+                        <i class="fa fa-pencil"></i>
+                    </a>
+                    <a href="{{ url_for('keywords.delete', uuid=model.uuid)}}" class="btn btn-sm btn-secondary delete-post" data-message="Do you want to delete?" data-method="post" data-toggle="tooltip" title="Delete">
+                        <i class="fa fa-times"></i>
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block body %}
+{{super()}}
+<script>
+jQuery(function () {
+    $(document).on('click', '.delete-post', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+
+        var obj = $(this),
+            message = obj.data('message'),
+            method = obj.data('method'),
+            url = obj.attr('href');
+
+        if (!confirm(message)) {
+            return false;
+        }
+
+        $.ajax({
+          url: url,
+          type: method,
+          success: function(data, textStatus, request){
+                var location = request.getResponseHeader('Location');
+                if (location) {
+                    window.location.replace(location);
+                } else {
+                    window.location.reload();
+                }
+           },
+           error: function (request, textStatus, errorThrown) {
+                alert('Error: ' + textStatus);
+           }
+        });
+    });
+ });
+</script>
+{% endblock %}

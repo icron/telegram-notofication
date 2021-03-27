@@ -1,0 +1,99 @@
+apiVersion: skaffold/v1beta13
+kind: Config
+
+profiles:
+  - name: namespace
+    deploy:
+      kubectl:
+        manifests:
+          - ./.skaffold/dev/namespace.yaml
+
+  - name: dev-local
+    build:
+      artifacts:
+        - image: telegram-app/telegram
+          context: .
+          custom:
+            buildCommand: make build-dev
+            dependencies:
+              dockerfile:
+                path: ./Dockerfile
+          sync:
+            manual:
+              - src: '**/*.py'
+                dest: /
+              - src: '**/*.html'
+                dest: /
+              - src: 'Makefile'
+                dest: /
+              - src: '.build/**'
+                dest: /
+              - src: 'app/static/**'
+                dest: /
+              - src: '**/*.ska'
+                dest: /
+              - src: 'app/**'
+                dest: /
+      local:
+        push: false
+    deploy:
+      helm:
+        releases:
+          - name: telegram-app
+            chartPath: .skaffold/flask-chart
+            valuesFiles:
+              - ./.skaffold/dev/values.yaml
+              - ./.skaffold/dev/secrets.values.yaml
+            values:
+              image: telegram-app/telegram
+            namespace: telegram-app
+            version: ^0.1.0
+            wait: true
+            setValues:
+              image.pullPolicy: IfNotPresent
+            remote: true
+            imageStrategy:
+              helm: {}
+#        flags:
+#          install:
+#            - --atomic
+#          upgrade:
+#            - --atomic
+  - name: prod
+    build:
+      artifacts:
+      - image: registry.digitalocean.com/DO_REGISTRY/telegram
+        context: .
+        docker:
+          dockerfile: ./Dockerfile
+          noCache: true
+      tagPolicy:
+        gitCommit:
+          variant: CommitSha
+      local:
+        push: true
+#      tagPolicy:
+#        envTemplate:
+#          template: "{{.IMAGE_NAME}}:{{.COMMIT_SHA}}"
+    deploy:
+      helm:
+        releases:
+          - name: telegram-app
+            chartPath: .skaffold/flask-chart
+            valuesFiles:
+              - ./.skaffold/prod/values.yaml
+              - ./.skaffold/prod/secrets.values.yaml
+            values:
+              image: registry.digitalocean.com/DO_REGISTRY/telegram
+            namespace: telegram-app
+            version: ^0.1.0
+            setValues:
+              image.pullPolicy: IfNotPresent
+            remote: true
+            imageStrategy:
+              helm: {}
+        flags:
+          install:
+            - --atomic
+          upgrade:
+            - --atomic

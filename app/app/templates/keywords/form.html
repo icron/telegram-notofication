@@ -1,0 +1,104 @@
+{% extends 'layout/main.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='js/plugins/jquery-tags-input/jquery.tagsinput.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='js/plugins/select2/css/select2.min.css') }}">
+{{ super() }}
+{% endblock %}
+
+{% block title %}Keywords form{% endblock %}
+
+{% block content %}
+<div class="alert alert-info">
+    <b>Help:</b><br/>
+    • "word" - Usual keyword. If message will contain at least the one keyword, it will be accepted. <br/>
+    • "-monitor" - Except keyword (keyword begins with symbol "-"). If message will contain the keyword, the message will be ignored. <br/>
+    • "cupboard+ikea" - Composed keyword (in one keyword multiple words joined with "+"). If message will contain all words from the tag, the message will be accepted. <br/>
+</div>
+<form action="" method="POST" onsubmit="onFormSubmit()">
+    {{ form.csrf_token }}
+    {% for field, errors in form.errors.items() %}
+    <div class="alert alert-danger">
+        {{ form[field].label }}: {{ ', '.join(errors) }}
+    </div>
+    {% endfor %}
+
+    {% set selected_channels = form.channels.data.split(',') if form.channels.data %}
+    <div class="form-group">
+        <label for="channels">Channels</label>
+        <select class="js-select2 form-control" id="channels" style="width: 100%;" data-placeholder="Select channels" multiple>
+            <option></option><!-- Required for data-placeholder attribute to work with Select2 plugin -->
+            {% for channel in channels %}
+                <option {% if channel.id|string in selected_channels %}selected{% endif %} value="{{ channel.id }}">{{ channel.title }}</option>
+            {% endfor %}
+        </select>
+        <input type="hidden" id="hidden_channels" name="channels">
+    </div>
+
+    <div class="form-group">
+        <label for="keywords">Keywords</label>
+        <input type="text" class="js-tags-input form-control" id="keywords" name="keywords"
+               value="{{ form.keywords.data|safe if form.keywords.data != None else '' }}">
+    </div>
+
+    <div class="form-group row">
+        <div class="col-12 text-right">
+            <button type="submit" class="btn btn-alt-primary">Submit</button>
+        </div>
+    </div>
+
+</form>
+{% endblock %}
+
+{% block body %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/plugins/jquery-tags-input/jquery.tagsinput.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/plugins/select2/js/select2.full.min.js') }}"></script>
+<script>jQuery(function () {
+    jQuery('.js-select2:not(.js-select2-enabled)').each((index, element) => {
+        let el = jQuery(element);
+
+        // Add .js-select2-enabled class to tag it as activated and init it
+        el.addClass('js-select2-enabled').select2({
+            placeholder: el.data('placeholder') || false
+        });
+    });
+    jQuery('.js-tags-input:not(.js-tags-input-enabled)').each((index, element) => {
+       var el = jQuery(element);
+
+        // Add .js-tags-input-enabled class to tag it as activated and init it
+        el.addClass('js-tags-input-enabled').tagsInput({
+            height: el.data('height') || false,
+            width: el.data('width') || '100%',
+            defaultText: el.data('default-text') || 'Add tag',
+            removeWithBackspace: el.data('remove-with-backspace') || true,
+            onChange: function(input, elem_tags) {
+                $('.tag').each(function(){
+
+                    if ($(this).text().startsWith('-')) {
+                        $(this).css('background-color', '#e74c3c');
+                    }
+
+                    if ($(this).text().indexOf('+') !== -1) {
+                        $(this).css('background-color', '#3f9ce8');
+                    }
+                });
+            },
+            delimiter: [',']
+        });
+    });
+ });
+
+</script>
+<script>
+    var onFormSubmit = function(){
+        jQuery('.js-select2.js-select2-enabled').each((index, element) => {
+            var el = jQuery(element);
+            var s2 = el.data('select2');
+            if (s2.val() !== null && s2.val().length > 0) {
+                $('#hidden_' + el.attr('id')).val(s2.val().join(','));
+            }
+        });
+      }
+</script>
+{% endblock %}

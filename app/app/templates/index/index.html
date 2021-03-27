@@ -1,0 +1,12 @@
+{% extends 'layout/main.html' %}
+
+{% block content %}
+<p>
+{% if current_user.is_authenticated %}
+  Hi {{ current_user.first_name }}!
+{% endif %}
+</p>
+<p>
+  For subscribing messages from telegram channels(chats) you should <a href="{{ url_for('keywords.create') }}" >create</a> keywords for selected channels.
+</p>
+{% endblock %}

@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "flask-chart.fullname" . }}
+  labels:
+    app: {{ template "flask-chart.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "flask-chart.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "flask-chart.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          {{- if .Values.command }}
+          command:
+            {{- range $value := .Values.command }}
+            - {{ $value | quote }}
+            {{- end }}
+          {{- end }}
+          {{- if .Values.args }}
+          args:
+            {{- range $value := .Values.args }}
+            - {{ $value | quote }}
+            {{- end }}
+          {{- end }}
+
+          env:
+          - name: PORT
+            value: "{{ .Values.service.internalPort }}"
+          - name: LISTEN_PORT
+            value: "{{ .Values.service.internalPort }}"
+
+          {{- range $key, $value := .Values.service.env }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+          {{- end }}
+
+          ports:
+            - containerPort: {{ .Values.service.internalPort }}
+          livenessProbe:
+            httpGet:
+              path: /k8s
+              port: {{ .Values.service.internalPort }}
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /k8s
+              port: {{ .Values.service.internalPort }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
